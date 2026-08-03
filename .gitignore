@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+.env
+.idea/
+
+# banco local de desenvolvimento (SQLite)
+dados.sqlite
+dados.sqlite-journal
+
+# artefatos temporários do vitest
+*.timestamp-*
