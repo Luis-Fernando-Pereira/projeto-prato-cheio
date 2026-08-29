@@ -37,7 +37,8 @@ export async function migrar() {
     CREATE TABLE IF NOT EXISTS doacoes (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       tipo        TEXT NOT NULL,
-      quantidade  TEXT NOT NULL,
+      quantidade  INTEGER NOT NULL,
+      unidade     TEXT NOT NULL,
       validade    TEXT NOT NULL,
       status      TEXT NOT NULL DEFAULT 'disponivel',
       ong         TEXT,

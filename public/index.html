@@ -23,7 +23,9 @@
     <label for="tipo">Tipo de alimento</label>
     <input id="tipo" placeholder="Ex.: sopa, pão, frutas">
     <label for="quantidade">Quantidade</label>
-    <input id="quantidade" placeholder="Ex.: 10 porções">
+    <input id="quantidade" type="number" min="1" step="1" placeholder="Ex.: 10">
+    <label for="unidade">Unidade</label>
+    <input id="unidade" placeholder="Ex.: porções, caixas, kg">
     <label for="validade">Validade / retirar até</label>
     <input id="validade" type="date">
     <button id="publicar">Publicar</button>
@@ -42,7 +44,7 @@
         : '<li>Nenhuma doação disponível.</li>';
       for (const d of doacoes) {
         const li = document.createElement('li');
-        li.textContent = `${d.tipo} — ${d.quantidade} (até ${d.validade}) `;
+        li.textContent = `${d.tipo}: ${d.quantidade} ${d.unidade} (até ${d.validade}) `;
         const botao = document.createElement('button');
         botao.textContent = 'Aceitar';
         botao.onclick = async () => {
@@ -64,7 +66,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: document.getElementById('tipo').value,
-          quantidade: document.getElementById('quantidade').value,
+          quantidade: Number(document.getElementById('quantidade').value),
+          unidade: document.getElementById('unidade').value,
           validade: document.getElementById('validade').value
         })
       });
