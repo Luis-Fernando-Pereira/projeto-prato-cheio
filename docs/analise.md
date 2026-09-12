@@ -2,7 +2,7 @@
 
 *Trabalho 1 · máximo 4 páginas · entrega na Aula 5*
 
-**Grupo:** Gustavo Vinius Taques, João Pedro Angélico, Luis Fernando Pereira, Vynicyus Cândido
+**Grupo:** Gustavo Vinicius Taques, João Pedro Angélico, Luis Fernando Pereira, Vynicyus Candido
 
 **Estado:** a história zero (publicar, ver, aceitar) roda ponta a ponta; 11 testes verdes com `npm test`. As regras de negócio 1, 2 e 3 estão implementadas e cobertas por teste. As histórias 3, 4 e 5 ficam para a Unidade 2 (ver "Decisão de análise").
 
