@@ -188,4 +188,73 @@ describe('aceitar uma doação', () => {
     expect(res.status).toBe(400);
     expect(res.body.erro).toMatch(/não encontrada/i);
   });
+
+  // Caminho de erro: aceitar sem informar qual ONG está aceitando
+  it('usa "ONG" como valor padrão quando o corpo não informa a ong', async () => {
+    const doacao = await publicar();
+
+    const res = await request(app)
+      .post(`/api/doacoes/${doacao.id}/aceitar`)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.ong).toBe('ONG');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cobertura adicional de validação (RN1): casos de borda que ainda não tinham
+// teste próprio, mas já são tratados pelo código em src/doacoes.js.
+// ---------------------------------------------------------------------------
+describe('validações adicionais de publicação', () => {
+  beforeEach(async () => {
+    await migrar();
+    await limparBanco();
+  });
+  afterAll(async () => {
+    await encerrar();
+  });
+
+  it('recusa quantidade não inteira', async () => {
+    const res = await request(app).post('/api/doacoes').send(doacaoValida({ quantidade: 1.5 }));
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/quantidade/i);
+  });
+
+  it('recusa quantidade que não é um número', async () => {
+    const res = await request(app).post('/api/doacoes').send(doacaoValida({ quantidade: 'abc' }));
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/quantidade/i);
+  });
+
+  it('recusa validade fora do formato AAAA-MM-DD', async () => {
+    const res = await request(app).post('/api/doacoes').send(doacaoValida({ validade: '31/12/2026' }));
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/validade/i);
+  });
+
+  it('trata campo só com espaços em branco como ausente', async () => {
+    const res = await request(app).post('/api/doacoes').send(doacaoValida({ tipo: '   ' }));
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/obrigat/i);
+  });
+
+  it('remove espaços extras de tipo e unidade antes de salvar', async () => {
+    const criada = await request(app)
+      .post('/api/doacoes')
+      .send(doacaoValida({ tipo: '  Sopa  ', unidade: '  porções  ' }));
+
+    expect(criada.status).toBe(201);
+    expect(criada.body.tipo).toBe('Sopa');
+    expect(criada.body.unidade).toBe('porções');
+  });
+});
+
+describe('frontend estático', () => {
+  it('serve a página inicial em /', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.text).toMatch(/Prato Cheio/);
+  });
 });
