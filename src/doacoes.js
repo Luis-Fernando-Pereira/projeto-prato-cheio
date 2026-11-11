@@ -15,6 +15,32 @@ const dataValida = (valor) => {
   return !Number.isNaN(data.getTime()) && data.toISOString().slice(0, 10) === valor;
 };
 
+// Busca a doação pelo id; se não existir, recusa (usado no aceite e na coleta).
+async function buscarExistente(id) {
+  const doacao = await repo.buscarPorId(id);
+  if (!doacao) {
+    throw new Error('doação não encontrada');
+  }
+  return doacao;
+}
+
+// Nome da ONG obrigatório e sem espaços nas pontas (usado nos relatórios das histórias 4 e 5).
+function nomeDaOng(ong) {
+  if (vazio(ong)) {
+    throw new Error('informe a ONG');
+  }
+  return String(ong).trim();
+}
+
+// Data obrigatória no formato AAAA-MM-DD; o rótulo entra na mensagem de erro.
+function dataObrigatoria(valor, rotulo) {
+  const data = String(valor ?? '').trim();
+  if (!dataValida(data)) {
+    throw new Error(`${rotulo} inválido: use o formato AAAA-MM-DD`);
+  }
+  return data;
+}
+
 // "Um doador publica uma doação."
 // Regra de negócio 1 (aula 2): tipo, quantidade, unidade e validade preenchidos;
 // quantidade inteira maior que zero; validade é uma data que ainda não passou
@@ -54,10 +80,7 @@ export async function listarDisponiveis() {
 // "Uma ONG aceita uma doação."
 // Regra de negócio 3 (aula 2): uma doação aceita não fica disponível para outra ONG.
 export async function aceitar(id, ong) {
-  const doacao = await repo.buscarPorId(id);
-  if (!doacao) {
-    throw new Error('doação não encontrada');
-  }
+  await buscarExistente(id);
 
   // Sem ONG informada, grava o nome padrão. O nome vai sem espaços nas pontas,
   // igual à consulta da história 4.
@@ -76,10 +99,7 @@ export async function listarAceitas() {
 // "O entregador confirma a retirada da doação no local do doador." (história 3)
 // Só uma doação aceita pode ser coletada, e uma única vez.
 export async function coletar(id) {
-  const doacao = await repo.buscarPorId(id);
-  if (!doacao) {
-    throw new Error('doação não encontrada');
-  }
+  const doacao = await buscarExistente(id);
   if (doacao.status === 'disponivel') {
     throw new Error('doação ainda não foi aceita por uma ONG');
   }
@@ -94,35 +114,22 @@ export async function coletar(id) {
 // "O coordenador da ONG vê quantas doações coletou num período." (história 4)
 // Conta pela data da coleta, com início e fim inclusivos (ADR 0004).
 export async function totalColetadas({ ong, inicio, fim } = {}) {
-  if (vazio(ong)) {
-    throw new Error('informe a ONG');
-  }
-  const datas = { inicio: String(inicio ?? '').trim(), fim: String(fim ?? '').trim() };
-  for (const [campo, rotulo] of [
-    ['inicio', 'início'],
-    ['fim', 'fim'],
-  ]) {
-    if (!dataValida(datas[campo])) {
-      throw new Error(`${rotulo} inválido: use o formato AAAA-MM-DD`);
-    }
-  }
-  if (datas.inicio > datas.fim) {
+  const nome = nomeDaOng(ong);
+  const desde = dataObrigatoria(inicio, 'início');
+  const ate = dataObrigatoria(fim, 'fim');
+  if (desde > ate) {
     throw new Error('período inválido: o início é depois do fim');
   }
 
-  const nome = String(ong).trim();
-  const total = await repo.contarColetadas(nome, datas.inicio, datas.fim);
-  return { ong: nome, inicio: datas.inicio, fim: datas.fim, total };
+  const total = await repo.contarColetadas(nome, desde, ate);
+  return { ong: nome, inicio: desde, fim: ate, total };
 }
 
 // "A vigilância sanitária consulta o que a ONG coletou, para auditar a qualidade." (história 5)
 // O sistema não registra baixa (consumo ou distribuição), então "estoque" é o que a ONG
 // coletou, e cada item diz se a validade já passou (ADR 0005).
 export async function estoqueDaOng({ ong } = {}) {
-  if (vazio(ong)) {
-    throw new Error('informe a ONG');
-  }
-  const nome = String(ong).trim();
+  const nome = nomeDaOng(ong);
   const limite = hoje();
   const itens = (await repo.listarColetadasDaOng(nome)).map((d) => ({
     id: d.id,
