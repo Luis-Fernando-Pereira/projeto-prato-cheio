@@ -1,5 +1,6 @@
 // Regras de negócio das doações (história zero da Unidade 1).
 import * as repo from './repositorio.js';
+import { STATUS } from './status.js';
 
 const CAMPOS_OBRIGATORIOS = ['tipo', 'quantidade', 'unidade', 'validade'];
 
@@ -100,7 +101,7 @@ export async function listarAceitas() {
 // Só uma doação aceita pode ser coletada, e uma única vez.
 export async function coletar(id) {
   const doacao = await buscarExistente(id);
-  if (doacao.status === 'disponivel') {
+  if (doacao.status === STATUS.DISPONIVEL) {
     throw new Error('doação ainda não foi aceita por uma ONG');
   }
 

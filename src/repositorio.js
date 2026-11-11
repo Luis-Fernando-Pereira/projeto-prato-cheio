@@ -4,6 +4,7 @@
 // Marcador de parâmetro é `?` (SQL parametrizado evita injeção):
 //   const { rows } = await query('SELECT * FROM doacoes WHERE id = ?', [id]);
 import { query } from './db.js';
+import { STATUS } from './status.js';
 
 // Insere a doação e devolve a linha criada (com id, status e criada_em).
 export async function inserir({ tipo, quantidade, unidade, validade }) {
@@ -21,9 +22,10 @@ export async function inserir({ tipo, quantidade, unidade, validade }) {
 export async function listarDisponiveis() {
   const { rows } = await query(
     `SELECT * FROM doacoes
-     WHERE status = 'disponivel'
+     WHERE status = ?
        AND validade >= date('now')
      ORDER BY validade ASC, id ASC`,
+    [STATUS.DISPONIVEL],
   );
   return rows;
 }
@@ -35,16 +37,16 @@ export async function buscarPorId(id) {
 }
 
 // Marca a doação como aceita pela ONG e devolve a linha atualizada.
-// O `AND status = 'disponivel'` é a trava contra aceite duplo: só a primeira ONG
+// O `AND status = disponível` é a trava contra aceite duplo: só a primeira ONG
 // casa com a condição; para a segunda o UPDATE não afeta nenhuma linha e o
 // RETURNING volta vazio.
 export async function aceitar(id, ong) {
   const { rows } = await query(
     `UPDATE doacoes
-     SET status = 'aceita', ong = ?, aceita_em = datetime('now')
-     WHERE id = ? AND status = 'disponivel'
+     SET status = ?, ong = ?, aceita_em = datetime('now')
+     WHERE id = ? AND status = ?
      RETURNING *`,
-    [ong, id],
+    [STATUS.ACEITA, ong, id, STATUS.DISPONIVEL],
   );
   return rows[0];
 }
@@ -53,22 +55,23 @@ export async function aceitar(id, ong) {
 export async function listarAceitas() {
   const { rows } = await query(
     `SELECT * FROM doacoes
-     WHERE status = 'aceita'
+     WHERE status = ?
      ORDER BY validade ASC, id ASC`,
+    [STATUS.ACEITA],
   );
   return rows;
 }
 
 // Marca a doação como coletada e devolve a linha atualizada.
-// Mesma trava do aceite: o `AND status = 'aceita'` impede coletar uma doação
+// Mesma trava do aceite: o `AND status = aceita` impede coletar uma doação
 // que ainda não foi aceita ou confirmar duas vezes a mesma retirada.
 export async function coletar(id) {
   const { rows } = await query(
     `UPDATE doacoes
-     SET status = 'coletada', coletada_em = datetime('now')
-     WHERE id = ? AND status = 'aceita'
+     SET status = ?, coletada_em = datetime('now')
+     WHERE id = ? AND status = ?
      RETURNING *`,
-    [id],
+    [STATUS.COLETADA, id, STATUS.ACEITA],
   );
   return rows[0];
 }
@@ -81,10 +84,10 @@ export async function coletar(id) {
 export async function contarColetadas(ong, inicio, fim) {
   const { rows } = await query(
     `SELECT COUNT(*) AS total FROM doacoes
-     WHERE status = 'coletada'
+     WHERE status = ?
        AND ong = ?
        AND date(coletada_em) BETWEEN ? AND ?`,
-    [ong, inicio, fim],
+    [STATUS.COLETADA, ong, inicio, fim],
   );
   // Number(): no PostgreSQL o COUNT(*) volta como bigint, que o driver entrega como texto.
   return Number(rows[0].total);
@@ -96,10 +99,10 @@ export async function contarColetadas(ong, inicio, fim) {
 export async function listarColetadasDaOng(ong) {
   const { rows } = await query(
     `SELECT * FROM doacoes
-     WHERE status = 'coletada'
+     WHERE status = ?
        AND ong = ?
      ORDER BY validade ASC, id ASC`,
-    [ong],
+    [STATUS.COLETADA, ong],
   );
   return rows;
 }
