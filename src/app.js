@@ -35,7 +35,7 @@ export function criarApp() {
   );
   app.post(
     '/api/doacoes/:id/aceitar',
-    responder((req) => doacoes.aceitar(req.params.id, req.body?.ong ?? 'ONG')),
+    responder((req) => doacoes.aceitar(req.params.id, req.body?.ong)),
   );
   app.post(
     '/api/doacoes/:id/coletar',

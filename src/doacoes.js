@@ -3,6 +3,9 @@ import * as repo from './repositorio.js';
 
 const CAMPOS_OBRIGATORIOS = ['tipo', 'quantidade', 'unidade', 'validade'];
 
+// Nome gravado quando o pedido de aceite não diz qual ONG está aceitando.
+const ONG_PADRAO = 'ONG';
+
 const vazio = (valor) => valor === undefined || valor === null || String(valor).trim() === '';
 const hoje = () => new Date().toISOString().slice(0, 10);
 // Formato AAAA-MM-DD e dia que existe no calendário (recusa, por exemplo, 2026-02-31).
@@ -56,8 +59,9 @@ export async function aceitar(id, ong) {
     throw new Error('doação não encontrada');
   }
 
-  // Grava o nome sem espaços nas pontas, igual à consulta da história 4.
-  const aceita = await repo.aceitar(id, String(ong).trim());
+  // Sem ONG informada, grava o nome padrão. O nome vai sem espaços nas pontas,
+  // igual à consulta da história 4.
+  const aceita = await repo.aceitar(id, String(ong ?? ONG_PADRAO).trim());
   if (!aceita) {
     throw new Error('doação já foi aceita por outra ONG');
   }
