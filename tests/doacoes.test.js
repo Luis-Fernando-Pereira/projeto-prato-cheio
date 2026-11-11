@@ -611,6 +611,34 @@ describe('validações adicionais de publicação', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Caminho de erro das rotas de listagem: até aqui nenhum teste fazia essas rotas
+// falharem. Protege a refatoração que centraliza o tratamento de erro em app.js.
+// A falha é real: a tabela é apagada e o SELECT quebra no banco.
+// ---------------------------------------------------------------------------
+describe('erro do banco nas rotas de listagem', () => {
+  beforeEach(async () => {
+    await migrar();
+    await query('DROP TABLE doacoes');
+  });
+  afterAll(async () => {
+    await migrar();
+    await encerrar();
+  });
+
+  it('responde 400 com a mensagem do erro na lista de disponíveis', async () => {
+    const res = await request(app).get('/api/doacoes');
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/no such table/i);
+  });
+
+  it('responde 400 com a mensagem do erro na lista de aceitas', async () => {
+    const res = await request(app).get('/api/doacoes/aceitas');
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toMatch(/no such table/i);
+  });
+});
+
 describe('frontend estático', () => {
   it('serve a página inicial em /', async () => {
     const res = await request(app).get('/');
